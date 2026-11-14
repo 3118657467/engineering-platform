@@ -46,6 +46,16 @@
           <div class="head-actions">
             <span class="muted-text">{{ env }} 环境 · 共 {{ board.deployed.length }} 个</span>
             <button
+              v-if="board.deployed.length"
+              class="btn small"
+              type="button"
+              title="按各分支最新提交重新部署当前环境的已部署分支"
+              :disabled="busy || envLocked"
+              @click="redeployAll"
+            >
+              重新部署
+            </button>
+            <button
               v-if="board.failedCount"
               class="btn small primary"
               type="button"
@@ -515,6 +525,19 @@ function deploySelected() {
   if (!ids.length) {
     ElMessage.error('没有可部署的分支');
     return;
+  }
+  openConfirm(ids);
+}
+
+function redeployAll() {
+  const rows = board.value.deployed;
+  const ids = rows.filter((row) => row.gate.ok).map((row) => row.id);
+  if (!ids.length) {
+    ElMessage.error(rows[0]?.gate.reason || '没有可重新部署的分支');
+    return;
+  }
+  if (ids.length < rows.length) {
+    ElMessage.warning(`已跳过 ${rows.length - ids.length} 个不满足门禁的分支`);
   }
   openConfirm(ids);
 }
