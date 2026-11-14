@@ -8,7 +8,6 @@
 Thumbs.db
 
 # 独立应用仓库（各自有 Git 历史，不纳入平台仓库）
-app/
 app-api/
 app-web/
 

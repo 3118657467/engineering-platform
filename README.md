@@ -13,8 +13,7 @@ engineering-platform/
 │  └─ docs/           架构图、新仓库 CI 模板
 ├─ infra/             本地基础设施说明与清单（k3s / MySQL / 启动脚本）
 ├─ app-api/           后端应用（独立仓库 root/app-api 的本地克隆，不纳入本仓库）
-├─ app-web/           前端应用（独立仓库 root/app-web 的本地克隆，不纳入本仓库）
-└─ app/               早期一体化 monorepo，仅作历史归档（不纳入本仓库）
+└─ app-web/           前端应用（独立仓库 root/app-web 的本地克隆，不纳入本仓库）
 ```
 
 ## 能力概览
@@ -37,5 +36,4 @@ engineering-platform/
 ## 说明
 
 - `app-api/`、`app-web/` 是前后端两个独立应用，分别对应 GitLab 的 `root/app-api`、`root/app-web`，本地已克隆为两个独立 Git 仓库；它们不包含在本平台仓库中。
-- `app/` 是拆分前的一体化 monorepo，仅保留历史归档，不再用于开发。
 - 仓库中的数据库密码、Token 等均为本地开发占位值，不可用于任何真实环境。
