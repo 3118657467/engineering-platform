@@ -30,11 +30,7 @@
         </template>
       </div>
       <div v-if="board.running" class="env-lock-hint">
-        <span class="pill warning"><i></i>{{ board.running.env }} 部署中</span>
-        <span>操作人 {{ board.running.operatorName }}；各环境互不影响，可随时切换查看其他环境</span>
-      </div>
-      <div class="env-lock-hint">
-        <span class="muted-text">环境隔离：命名空间 <code>{{ projectId }}-{{ env }}</code>，Pod / Service / 数据均按环境独立</span>
+        <span class="pill warning"><i></i>{{ board.running.env }} 部署中 · {{ board.running.operatorName }}</span>
       </div>
     </div>
 
