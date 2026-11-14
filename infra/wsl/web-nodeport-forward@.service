@@ -1,0 +1,10 @@
+[Unit]
+Description=Forward localhost:%i to NodePort %i for application web
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/socat TCP-LISTEN:%i,fork,reuseaddr TCP:127.0.0.1:%i
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
