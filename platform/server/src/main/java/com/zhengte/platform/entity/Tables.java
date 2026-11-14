@@ -1,6 +1,7 @@
 package com.zhengte.platform.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
@@ -159,15 +160,42 @@ public final class Tables {
     }
 
     @Data
-    @TableName("prod_releases")
-    public static class ProdRelease {
+    @TableName("prod_release_history")
+    public static class ReleaseHistory {
+        @TableId(type = IdType.AUTO)
+        private Long id;
+        private String projectId;
+        private String service;
+        private Long requirementId;
+        private String reqNo;
+        private String title;
+        private String branchName;
+        private String sha;
+        private LocalDateTime releasedAt;
+        private String operator;
+        private Long batchId;
+        private Long deploymentId;
+        @TableField("is_current")
+        private Boolean current;
+    }
+
+    @Data
+    @TableName("prod_requirement_archives")
+    public static class RequirementArchive {
         @TableId(value = "requirement_id", type = IdType.INPUT)
         private Long requirementId;
+        private String projectId;
         private String service;
-        private String currentSha;
-        private LocalDateTime releasedAt;
-        private String previousSha;
-        private LocalDateTime prevReleasedAt;
+        private Long releaseId;
+        private LocalDateTime archivedAt;
+    }
+
+    @Data
+    @TableName("deployment_release_target")
+    public static class DeploymentReleaseTarget {
+        @TableId(value = "deployment_id", type = IdType.INPUT)
+        private Long deploymentId;
+        private Long releaseId;
     }
 
     @Data

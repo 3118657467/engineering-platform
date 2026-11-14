@@ -30,6 +30,9 @@ public class DeployController {
     public record TargetReq(String projectId, String service, String env, String id) {
     }
 
+    public record RollbackReq(String projectId, String service, String env, Long releaseId) {
+    }
+
     public record ScaleReq(String projectId, String service, String env, Integer replicas) {
     }
 
@@ -61,8 +64,8 @@ public class DeployController {
     }
 
     @PostMapping("/rollback")
-    public Views.StartResult rollback(@RequestBody TargetReq req, HttpServletRequest request) {
-        return deployService.rollback(req.projectId(), req.service(), req.env(), req.id(),
+    public Views.StartResult rollback(@RequestBody RollbackReq req, HttpServletRequest request) {
+        return deployService.rollback(req.projectId(), req.service(), req.env(), req.releaseId(),
                 AuthInterceptor.current(request).username());
     }
 

@@ -136,6 +136,40 @@ CREATE TABLE IF NOT EXISTS prod_releases (
   CONSTRAINT fk_release_req FOREIGN KEY (requirement_id) REFERENCES requirements (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS prod_release_history (
+  id             BIGINT       NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  project_id     VARCHAR(64)  NOT NULL,
+  service        VARCHAR(16)  NOT NULL,
+  requirement_id BIGINT       NOT NULL,
+  req_no         VARCHAR(32)  NOT NULL,
+  title          VARCHAR(256) NOT NULL,
+  branch_name    VARCHAR(128) NOT NULL,
+  sha            CHAR(7)      NOT NULL,
+  released_at    DATETIME     NOT NULL,
+  operator       VARCHAR(64)  NOT NULL,
+  batch_id       BIGINT       NULL,
+  deployment_id  BIGINT       NULL,
+  is_current     TINYINT      NULL,
+  KEY idx_rel_scope (project_id, service, released_at),
+  KEY idx_rel_req (requirement_id, service),
+  UNIQUE KEY uk_rel_current (project_id, service, is_current)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS prod_requirement_archives (
+  requirement_id BIGINT      NOT NULL PRIMARY KEY,
+  project_id     VARCHAR(64) NOT NULL,
+  service        VARCHAR(16) NOT NULL,
+  release_id     BIGINT      NULL,
+  archived_at    DATETIME    NOT NULL,
+  KEY idx_archive_scope (project_id, service)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS deployment_release_target (
+  deployment_id BIGINT NOT NULL PRIMARY KEY,
+  release_id    BIGINT NOT NULL,
+  KEY idx_drt_release (release_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE IF NOT EXISTS deploy_locks (
   project_id    VARCHAR(64) NOT NULL,
   service       VARCHAR(16) NOT NULL,

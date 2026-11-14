@@ -60,7 +60,10 @@
               <td>{{ item.ownerName }}</td>
               <td>{{ item.createdAt }}</td>
               <td>
-                <span class="pill" :class="item.status.cls"><i></i>{{ item.status.label }}</span>
+                <div class="tag-row">
+                  <span class="pill" :class="item.status.cls"><i></i>{{ item.status.label }}</span>
+                  <span v-if="item.archived" class="pill success"><i></i>已发布</span>
+                </div>
               </td>
               <td class="ops">
                 <button

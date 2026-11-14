@@ -10,7 +10,7 @@ public interface DeployService {
     Views.StartResult start(String projectId, String service, String env, List<String> ids,
                             String operator);
 
-    Views.StartResult rollback(String projectId, String service, String env, String reqNo,
+    Views.StartResult rollback(String projectId, String service, String env, Long releaseId,
                                String operator);
 
     Views.Result resolveConflict(String projectId, String service, String env, String reqNo);

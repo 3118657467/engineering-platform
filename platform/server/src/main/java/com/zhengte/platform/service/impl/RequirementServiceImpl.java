@@ -21,6 +21,7 @@ import com.zhengte.platform.mapper.ProjectMapper;
 import com.zhengte.platform.mapper.RequirementBranchMapper;
 import com.zhengte.platform.mapper.RequirementMapper;
 import com.zhengte.platform.mapper.RequirementRelatedMapper;
+import com.zhengte.platform.mapper.RequirementArchiveMapper;
 import com.zhengte.platform.mapper.UserMapper;
 import com.zhengte.platform.utils.Fmt;
 import java.time.LocalDateTime;
@@ -31,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,6 +54,7 @@ public class RequirementServiceImpl implements RequirementService {
     private final ViewConverter viewConverter;
     private final GitService gitService;
     private final RequirementBranchSync branchSync;
+    private final RequirementArchiveMapper archiveMapper;
 
     public RequirementServiceImpl(ProjectMapper projectMapper,
                               RequirementMapper requirementMapper,
@@ -62,7 +65,8 @@ public class RequirementServiceImpl implements RequirementService {
                               UserMapper userMapper,
                               ViewConverter viewConverter,
                               GitService gitService,
-                              RequirementBranchSync branchSync) {
+                              RequirementBranchSync branchSync,
+                              RequirementArchiveMapper archiveMapper) {
         this.projectMapper = projectMapper;
         this.requirementMapper = requirementMapper;
         this.branchMapper = branchMapper;
@@ -73,6 +77,7 @@ public class RequirementServiceImpl implements RequirementService {
         this.viewConverter = viewConverter;
         this.gitService = gitService;
         this.branchSync = branchSync;
+        this.archiveMapper = archiveMapper;
     }
 
     @Override
@@ -237,6 +242,7 @@ public class RequirementServiceImpl implements RequirementService {
                         .put(state.env(), state));
         Map<Long, List<CrRecord>> crs = crMapper.findByProject(projectId);
         Map<String, String> names = userMapper.displayNames();
+        Set<Long> archived = archiveMapper.findArchivedIds(projectId);
 
         List<Views.Requirement> result = new ArrayList<>();
         for (RequirementRecord record : records) {
@@ -273,7 +279,8 @@ public class RequirementServiceImpl implements RequirementService {
                     Fmt.time(record.createdAt()),
                     label,
                     services,
-                    viewConverter.cr(cr.orElse(null), primaryService, names)));
+                    viewConverter.cr(cr.orElse(null), primaryService, names),
+                    archived.contains(record.id())));
         }
         return result;
     }

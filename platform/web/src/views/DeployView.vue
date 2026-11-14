@@ -130,46 +130,62 @@
         </div>
       </div>
 
-      <div v-if="env === 'prod' && board.prodReleases.length" class="card section-card">
+      <div v-if="env === 'prod'" class="card section-card">
         <div class="panel-head">
-          <h3>生产版本与回滚</h3>
-          <span class="muted-text">部署失败或线上验证异常时可回滚</span>
+          <h3>生产发布版本</h3>
+          <span class="muted-text">回滚不合并代码，以所选版本 SHA 重跑 prod 流水线</span>
         </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th style="width:34%">需求</th>
-                <th style="width:24%">当前线上版本</th>
-                <th style="width:24%">上一版本</th>
-                <th style="width:18%"></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="row in board.prodReleases" :key="row.id">
-                <td>
-                  <button class="link" type="button" @click="openDetail(row.id)">{{ row.id }}</button>
-                  <div class="title">{{ row.title }}</div>
-                </td>
-                <td><code>{{ row.currentSha }}</code><div class="title">{{ row.currentTime }}</div></td>
-                <td>
-                  <code>{{ row.previousSha || '-' }}</code>
-                  <div class="title">{{ row.previousTime || '-' }}</div>
-                </td>
-                <td class="ops">
-                  <button
-                    class="btn small"
-                    type="button"
-                    :disabled="!row.previousSha"
-                    @click="openRollback(row)"
-                  >
-                    回滚到上一版本
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <template v-if="board.releases.length">
+          <div v-if="currentRelease" class="release-current">
+            <div class="release-current-main">
+              <span class="pill success"><i></i>当前版本</span>
+              <code class="release-sha">{{ currentRelease.sha }}</code>
+              <strong>{{ currentRelease.reqNo }} · {{ currentRelease.title }}</strong>
+            </div>
+            <span class="muted-text">{{ currentRelease.time }} · {{ currentRelease.operatorName }}</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:10%">提交</th>
+                  <th style="width:32%">需求</th>
+                  <th style="width:20%">分支</th>
+                  <th style="width:16%">发布时间</th>
+                  <th style="width:10%">操作人</th>
+                  <th style="width:12%"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="row in board.releases" :key="row.id" :class="{ 'release-current-row': row.current }">
+                  <td><code>{{ row.sha }}</code></td>
+                  <td>
+                    <div class="req-cell">
+                      <button class="link" type="button" @click="openDetail(row.reqNo)">{{ row.reqNo }}</button>
+                      <span class="req-title">{{ row.title }}</span>
+                    </div>
+                  </td>
+                  <td><code>{{ row.branch }}</code></td>
+                  <td>{{ row.time }}</td>
+                  <td>{{ row.operatorName }}</td>
+                  <td class="ops">
+                    <span v-if="row.current" class="pill success"><i></i>当前</span>
+                    <button
+                      v-else
+                      class="btn small"
+                      type="button"
+                      :disabled="rollbackDisabled"
+                      @click="openRollback(row)"
+                    >
+                      回滚到此版本
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </template>
+        <div v-else class="empty" style="padding:28px">暂无发布历史</div>
       </div>
 
       <div class="card section-card">
@@ -321,12 +337,13 @@
     <BaseModal v-model="rollbackOpen" title="回滚确认" width="min(540px, 100%)">
       <div class="kv">
         <span>服务</span><span><span class="pill" :class="service === 'api' ? 'info' : 'primary'">{{ serviceLabel }}</span></span>
-        <span>需求</span><span>{{ rollbackRow?.id }} · {{ rollbackRow?.title }}</span>
-        <span>当前版本</span><span><code>{{ rollbackRow?.currentSha }}</code></span>
-        <span>回滚到</span>
-        <span><code>{{ rollbackRow?.previousSha }}</code>（{{ rollbackRow?.previousTime }}）</span>
+        <span>需求</span><span>{{ rollbackRow?.reqNo }} · {{ rollbackRow?.title }}</span>
+        <span>目标版本</span><span><code>{{ rollbackRow?.sha }}</code></span>
+        <span>发布时间</span><span>{{ rollbackRow?.time }} · {{ rollbackRow?.operatorName }}</span>
       </div>
-      <div class="notice">回滚会以旧版本重新走一遍发布流程，并替换当前生产 Pod。</div>
+      <div class="notice">
+        回滚不合并代码，会以该版本 SHA 重跑 prod 流水线；成功后该版本变为当前版本，其余历史保留。
+      </div>
       <template #footer>
         <button class="btn" type="button" @click="rollbackOpen = false">取消</button>
         <button class="btn primary" type="button" :disabled="submitting" @click="confirmRollback">
@@ -372,7 +389,7 @@ const emptyBoard = () => ({
   pending: [],
   failedCount: 0,
   pipeline: null,
-  prodReleases: [],
+  releases: [],
   pods: [],
   running: null
 });
@@ -413,6 +430,12 @@ const selectedCount = computed(
 const allSelected = computed(
   () => selectablePending.value.length > 0
     && selectablePending.value.every((row) => selected.value.includes(row.id))
+);
+const currentRelease = computed(
+  () => board.value.releases.find((row) => row.current) || null
+);
+const rollbackDisabled = computed(
+  () => Boolean(board.value.running) || board.value.pipeline?.status === 'running'
 );
 
 function statusMeta(status) {
@@ -612,7 +635,7 @@ function openDetail(id) {
 }
 
 function openRollback(row) {
-  if (board.value.pipeline?.status === 'running') {
+  if (rollbackDisabled.value) {
     ElMessage.error('当前环境正在部署，不能回滚');
     return;
   }
@@ -628,7 +651,7 @@ async function confirmRollback() {
       projectId: projectId.value,
       service: props.service,
       env: 'prod',
-      id: rollbackRow.value.id
+      releaseId: rollbackRow.value.id
     });
     ElMessage.success(data.message || '回滚已开始');
     rollbackOpen.value = false;

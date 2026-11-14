@@ -25,7 +25,7 @@ public final class Views {
     public record Approval(long crId, String projectId, String id, String title, String service, String branch, String tipSha, String requester, String requesterName, String time, String status, boolean canAct) {
     }
 
-    public record Board(String projectId, String service, String env, List<DeployRow> deployed, List<PendingRow> pending, int failedCount, Pipeline pipeline, List<ProdRelease> prodReleases, List<Pod> pods, Deploying running) {
+    public record Board(String projectId, String service, String env, List<DeployRow> deployed, List<PendingRow> pending, int failedCount, Pipeline pipeline, List<ReleaseVersion> releases, List<Pod> pods, Deploying running) {
     }
 
     public record Deploying(String env, String operator, String operatorName) {
@@ -40,7 +40,7 @@ public final class Views {
     public record Pod(String name, String status, String ready, String age, String node, int restarts, String image) {
     }
 
-    public record ProdRelease(String id, String title, String currentSha, String currentTime, String previousSha, String previousTime) {
+    public record ReleaseVersion(long id, String reqNo, String title, String branch, String sha, String time, String operator, String operatorName, boolean current) {
     }
 
     public record Pipeline(long batchId, String status, String startedAt, String operator, List<PipelineReq> requirements) {
@@ -58,7 +58,7 @@ public final class Views {
     public record DeployRow(String id, String title, String branch, String sha, String time, List<Tag> tags, String status, String error, Cr cr, Gate gate, boolean hasNew) {
     }
 
-    public record Requirement(String id, String projectId, String title, String description, String owner, String ownerName, List<String> related, String branch, String branchStatus, Map<String, String> tips, String createdAt, Label status, Map<String, Map<String, EnvState>> services, Cr cr) {
+    public record Requirement(String id, String projectId, String title, String description, String owner, String ownerName, List<String> related, String branch, String branchStatus, Map<String, String> tips, String createdAt, Label status, Map<String, Map<String, EnvState>> services, Cr cr, boolean archived) {
     }
 
     public record Label(String label, String cls) {

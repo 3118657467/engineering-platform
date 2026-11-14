@@ -25,6 +25,7 @@ import com.zhengte.platform.mapper.EnvStateMapper;
 import com.zhengte.platform.mapper.ProjectMapper;
 import com.zhengte.platform.mapper.RequirementMapper;
 import com.zhengte.platform.mapper.UserMapper;
+import com.zhengte.platform.service.ReleaseHistoryService;
 import com.zhengte.platform.utils.Fmt;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -32,7 +33,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -53,6 +54,7 @@ public class DeployServiceImpl implements DeployService {
     private final UserMapper userMapper;
     private final ViewConverter viewConverter;
     private final RequirementBranchSync branchSync;
+    private final ReleaseHistoryService releaseHistoryService;
     private final String runtimeMode;
 
     public DeployServiceImpl(ProjectMapper projectMapper,
@@ -65,6 +67,7 @@ public class DeployServiceImpl implements DeployService {
                          UserMapper userMapper,
                          ViewConverter viewConverter,
                          RequirementBranchSync branchSync,
+                         ReleaseHistoryService releaseHistoryService,
                          @Value("${platform.runtime.mode:mock}") String runtimeMode) {
         this.projectMapper = projectMapper;
         this.requirementMapper = requirementMapper;
@@ -76,6 +79,7 @@ public class DeployServiceImpl implements DeployService {
         this.userMapper = userMapper;
         this.viewConverter = viewConverter;
         this.branchSync = branchSync;
+        this.releaseHistoryService = releaseHistoryService;
         this.runtimeMode = runtimeMode;
     }
 
@@ -97,9 +101,13 @@ public class DeployServiceImpl implements DeployService {
 
         List<DeployRowWithTime> deployedTimes = new ArrayList<>();
         List<Views.PendingRow> pending = new ArrayList<>();
+        Set<Long> archived = releaseHistoryService.archivedIds(projectId);
 
         for (RequirementRecord raw : requirements) {
             if (!BranchStatus.CREATED.code().equals(raw.branchStatus())) {
+                continue;
+            }
+            if (archived.contains(raw.id())) {
                 continue;
             }
             RequirementRecord requirement = raw;
@@ -156,8 +164,13 @@ public class DeployServiceImpl implements DeployService {
         int failedCount = (int) sortedDeployed.stream()
                 .filter(row -> EnvStatus.FAILED.code().toLowerCase().equals(row.status())).count();
 
-        List<Views.ProdRelease> releases = envType.isProd()
-                ? prodReleases(projectId, service, requirements)
+        List<Views.ReleaseVersion> releases = envType.isProd()
+                ? releaseHistoryService.history(projectId, service).stream()
+                        .map(row -> new Views.ReleaseVersion(row.id(), row.reqNo(), row.title(),
+                                row.branchName(), row.sha(), Fmt.time(row.releasedAt()),
+                                row.operator(), names.getOrDefault(row.operator(), row.operator()),
+                                Boolean.TRUE.equals(row.current())))
+                        .toList()
                 : List.of();
 
         Views.Deploying running = deployMapper.findRunningBatch(projectId, service, env)
@@ -209,31 +222,6 @@ public class DeployServiceImpl implements DeployService {
         };
     }
 
-    private List<Views.ProdRelease> prodReleases(String projectId, String service,
-                                                 List<RequirementRecord> requirements) {
-        Map<Long, RequirementRecord> byId = requirements.stream()
-                .collect(Collectors.toMap(RequirementRecord::id, requirement -> requirement));
-        Map<Long, EnvStateRecord> prodStates = envStateMapper.findAllByProject(projectId).stream()
-                .filter(state -> service.equals(state.service()) && Env.PROD.code().equals(state.env()))
-                .collect(Collectors.toMap(EnvStateRecord::requirementId, state -> state));
-        return deployMapper.findReleases(projectId, service).stream()
-                .filter(release -> {
-                    RequirementRecord requirement = byId.get(release.requirementId());
-                    EnvStateRecord state = prodStates.get(release.requirementId());
-                    return requirement != null
-                            && BranchStatus.CREATED.code().equals(requirement.branchStatus())
-                            && state != null && EnvStatus.SUCCESS.code().equals(state.status());
-                })
-                .map(release -> new Views.ProdRelease(
-                        byId.get(release.requirementId()).reqNo(),
-                        byId.get(release.requirementId()).title(),
-                        release.currentSha(),
-                        Fmt.time(release.currentTime()),
-                        release.previousSha(),
-                        Fmt.time(release.previousTime())))
-                .toList();
-    }
-
     @Override
     public Views.StartResult start(String projectId, String service, String env, List<String> ids,
                                    String operator) {
@@ -246,15 +234,16 @@ public class DeployServiceImpl implements DeployService {
     }
 
     @Override
-    public Views.StartResult rollback(String projectId, String service, String env, String reqNo,
+    public Views.StartResult rollback(String projectId, String service, String env, Long releaseId,
                                       String operator) {
         validate(projectId, service, env);
         if (!Env.PROD.code().equals(env)) {
             throw ApiException.badRequest("只有生产环境支持回滚");
         }
-        RequirementRecord requirement = requirementMapper.findByReqNo(projectId, reqNo)
-                .orElseThrow(() -> ApiException.notFound("需求不存在：" + reqNo));
-        long batchId = pipelineService.rollback(projectId, service, requirement, operator);
+        if (releaseId == null) {
+            throw ApiException.badRequest("请选择要回滚的版本");
+        }
+        long batchId = pipelineService.rollback(projectId, service, releaseId, operator);
         return new Views.StartResult(true, "回滚已开始", batchId);
     }
 

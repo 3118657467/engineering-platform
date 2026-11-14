@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.zhengte.platform.entity.BatchRecord;
 import com.zhengte.platform.entity.DeploymentRecord;
-import com.zhengte.platform.entity.ReleaseRecord;
 import com.zhengte.platform.entity.StepRecord;
 import com.zhengte.platform.entity.Tables;
 import com.zhengte.platform.converter.RecordMapper;
@@ -38,16 +37,6 @@ public interface DeployMapper extends BaseMapper<Tables.DeployBatch> {
     int insertLock(Tables.DeployLock row);
 
     @Insert("""
-            INSERT INTO prod_releases
-                (requirement_id, service, current_sha, released_at, previous_sha, prev_released_at)
-            VALUES (#{requirementId}, #{service}, #{sha}, #{now}, NULL, NULL)
-            ON DUPLICATE KEY UPDATE previous_sha = current_sha, prev_released_at = released_at,
-                current_sha = #{sha}, released_at = #{now}
-            """)
-    int saveReleaseRow(@Param("requirementId") long requirementId, @Param("service") String service,
-                       @Param("sha") String sha, @Param("now") LocalDateTime now);
-
-    @Insert("""
             INSERT INTO deployment_pipelines (deployment_id, pipeline_id, status, updated_at)
             VALUES (#{deploymentId}, #{pipelineId}, #{status}, #{now})
             ON DUPLICATE KEY UPDATE status = #{status}, updated_at = #{now}
@@ -70,15 +59,6 @@ public interface DeployMapper extends BaseMapper<Tables.DeployBatch> {
     int updateStepRow(@Param("id") long id, @Param("status") String status,
                       @Param("durationMs") Integer durationMs);
 
-    @Update("""
-            UPDATE prod_releases
-            SET previous_sha = current_sha, prev_released_at = released_at,
-                current_sha = #{sha}, released_at = #{now}
-            WHERE requirement_id = #{requirementId} AND service = #{service}
-            """)
-    int rollbackRow(@Param("requirementId") long requirementId, @Param("service") String service,
-                    @Param("sha") String sha, @Param("now") LocalDateTime now);
-
     @Select("""
             SELECT * FROM deployments
             WHERE batch_id = #{batchId} AND status IN ('RUNNING', 'PENDING')
@@ -94,19 +74,6 @@ public interface DeployMapper extends BaseMapper<Tables.DeployBatch> {
             ORDER BY s.deployment_id, s.seq
             """)
     List<Tables.DeploymentStep> findStepRowsByBatch(@Param("batchId") long batchId);
-
-    @Select("SELECT * FROM prod_releases WHERE requirement_id = #{requirementId} AND service = #{service}")
-    Tables.ProdRelease findReleaseRow(@Param("requirementId") long requirementId,
-                                      @Param("service") String service);
-
-    @Select("""
-            SELECT p.* FROM prod_releases p
-            JOIN requirements r ON r.id = p.requirement_id
-            WHERE r.project_id = #{projectId} AND p.service = #{service}
-            ORDER BY r.req_no
-            """)
-    List<Tables.ProdRelease> findReleaseRows(@Param("projectId") String projectId,
-                                             @Param("service") String service);
 
     @Select("SELECT pipeline_id FROM deployment_pipelines WHERE deployment_id = #{deploymentId}")
     Long findPipelineRow(@Param("deploymentId") long deploymentId);
@@ -250,23 +217,6 @@ public interface DeployMapper extends BaseMapper<Tables.DeployBatch> {
 
     default Optional<Long> findPipelineId(long deploymentId) {
         return Optional.ofNullable(findPipelineRow(deploymentId));
-    }
-
-    default Optional<ReleaseRecord> findRelease(long requirementId, String service) {
-        return Optional.ofNullable(findReleaseRow(requirementId, service)).map(RecordMapper.INSTANCE::toRelease);
-    }
-
-    default List<ReleaseRecord> findReleases(String projectId, String service) {
-        return findReleaseRows(projectId, service).stream().map(RecordMapper.INSTANCE::toRelease).toList();
-    }
-
-    default void saveRelease(long requirementId, String service, String newSha, LocalDateTime now) {
-        saveReleaseRow(requirementId, service, newSha, now);
-    }
-
-    default void rollbackRelease(long requirementId, String service, String targetSha,
-                                 LocalDateTime now) {
-        rollbackRow(requirementId, service, targetSha, now);
     }
 
     default void deleteLockByBatch(long batchId) {

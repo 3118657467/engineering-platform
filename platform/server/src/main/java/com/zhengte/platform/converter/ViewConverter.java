@@ -8,7 +8,6 @@ import com.zhengte.platform.enums.BranchStatus;
 import com.zhengte.platform.enums.CrStatus;
 import com.zhengte.platform.enums.Env;
 import com.zhengte.platform.enums.EnvStatus;
-import com.zhengte.platform.enums.ServiceType;
 import com.zhengte.platform.utils.Fmt;
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -57,9 +56,9 @@ public class ViewConverter {
         if (failed) {
             return new Views.Label("有失败", "danger");
         }
-        boolean apiOnline = isSuccess(services, ServiceType.API.code(), Env.PROD.code());
-        boolean webOnline = isSuccess(services, ServiceType.WEB.code(), Env.PROD.code());
-        if (apiOnline && webOnline) {
+        boolean online = !services.isEmpty() && services.keySet().stream()
+                .allMatch(service -> isSuccess(services, service, Env.PROD.code()));
+        if (online) {
             return new Views.Label("已上线", "success");
         }
         return new Views.Label("进行中", "info");

@@ -10,7 +10,7 @@ import com.zhengte.platform.entity.BatchRecord;
 import com.zhengte.platform.entity.CrRecord;
 import com.zhengte.platform.entity.DeploymentRecord;
 import com.zhengte.platform.entity.EnvStateRecord;
-import com.zhengte.platform.entity.ReleaseRecord;
+import com.zhengte.platform.entity.ReleaseHistoryRecord;
 import com.zhengte.platform.entity.RequirementRecord;
 import com.zhengte.platform.entity.StepRecord;
 import com.zhengte.platform.enums.BatchStatus;
@@ -22,11 +22,14 @@ import com.zhengte.platform.enums.StepStatus;
 import com.zhengte.platform.integration.git.GitService;
 import com.zhengte.platform.mapper.CrRequestMapper;
 import com.zhengte.platform.mapper.DeployMapper;
+import com.zhengte.platform.mapper.DeploymentReleaseTargetMapper;
 import com.zhengte.platform.mapper.EnvStateMapper;
+import com.zhengte.platform.mapper.ReleaseHistoryMapper;
 import com.zhengte.platform.mapper.RequirementMapper;
 import com.zhengte.platform.mapper.UserMapper;
 import com.zhengte.platform.service.DeployGate;
 import com.zhengte.platform.service.PipelineService;
+import com.zhengte.platform.service.ReleaseHistoryService;
 import com.zhengte.platform.service.RequirementBranchSync;
 import com.zhengte.platform.utils.Fmt;
 import jakarta.annotation.PreDestroy;
@@ -66,6 +69,9 @@ public class PipelineServiceImpl implements PipelineService {
     private final UserMapper userMapper;
     private final GitService gitService;
     private final RequirementBranchSync branchSync;
+    private final ReleaseHistoryMapper releaseHistoryMapper;
+    private final DeploymentReleaseTargetMapper releaseTargetMapper;
+    private final ReleaseHistoryService releaseHistoryService;
     private final TransactionTemplate transactionTemplate;
     private final int stepDelayMs;
     private final long pollIntervalMs;
@@ -80,6 +86,9 @@ public class PipelineServiceImpl implements PipelineService {
                                UserMapper userMapper,
                                GitService gitService,
                                RequirementBranchSync branchSync,
+                               ReleaseHistoryMapper releaseHistoryMapper,
+                               DeploymentReleaseTargetMapper releaseTargetMapper,
+                               ReleaseHistoryService releaseHistoryService,
                                PlatformTransactionManager transactionManager,
                                @Value("${platform.pipeline.step-delay-ms:1500}") int stepDelayMs,
                                @Value("${platform.pipeline.poll-interval-ms:"
@@ -94,6 +103,9 @@ public class PipelineServiceImpl implements PipelineService {
         this.userMapper = userMapper;
         this.gitService = gitService;
         this.branchSync = branchSync;
+        this.releaseHistoryMapper = releaseHistoryMapper;
+        this.releaseTargetMapper = releaseTargetMapper;
+        this.releaseHistoryService = releaseHistoryService;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
         this.stepDelayMs = stepDelayMs;
         this.pollIntervalMs = pollIntervalMs;
@@ -106,31 +118,40 @@ public class PipelineServiceImpl implements PipelineService {
         });
     }
 
-    private record Task(RequirementRecord requirement, String sha) {
+    private record Task(RequirementRecord requirement, String sha, Long releaseId) {
     }
 
     @Override
     public long start(String projectId, String service, String env, List<String> reqNos, String operator) {
         List<Task> tasks = new ArrayList<>();
+        Set<Long> archived = releaseHistoryService.archivedIds(projectId);
         for (String reqNo : reqNos) {
             RequirementRecord requirement = requirementMapper.findByReqNo(projectId, reqNo)
                     .orElseThrow(() -> ApiException.notFound("需求不存在：" + reqNo));
+            if (archived.contains(requirement.id())) {
+                throw ApiException.badRequest(requirement.reqNo() + " 已发布归档，不能再部署");
+            }
             String tipSha = branchSync.syncTip(projectId, requirement, service);
             validateGate(requirement, service, env, tipSha);
-            tasks.add(new Task(requirement, tipSha));
+            tasks.add(new Task(requirement, tipSha, null));
         }
-        return createAndRun(projectId, service, env, tasks, operator, false);
+        return createAndRun(projectId, service, env, tasks, operator);
     }
 
     @Override
-    public long rollback(String projectId, String service, RequirementRecord requirement, String operator) {
-        ReleaseRecord release = deployMapper.findRelease(requirement.id(), service)
-                .orElseThrow(() -> ApiException.badRequest("没有可回滚的历史版本"));
-        if (release.previousSha() == null || release.previousSha().isBlank()) {
-            throw ApiException.badRequest("没有可回滚的历史版本");
+    public long rollback(String projectId, String service, long releaseId, String operator) {
+        ReleaseHistoryRecord release = releaseHistoryMapper.findById(releaseId)
+                .orElseThrow(() -> ApiException.notFound("发布版本不存在：" + releaseId));
+        if (!release.projectId().equals(projectId) || !release.service().equals(service)) {
+            throw ApiException.badRequest("发布版本不属于当前项目");
         }
-        List<Task> tasks = List.of(new Task(requirement, release.previousSha()));
-        return createAndRun(projectId, service, Env.PROD.code(), tasks, operator, true);
+        if (Boolean.TRUE.equals(release.current())) {
+            throw ApiException.badRequest("该版本已是当前生产版本");
+        }
+        RequirementRecord requirement = requirementMapper.findById(release.requirementId())
+                .orElseThrow(() -> ApiException.notFound("需求不存在：" + release.requirementId()));
+        return createAndRun(projectId, service, Env.PROD.code(),
+                List.of(new Task(requirement, release.sha(), release.id())), operator);
     }
 
     private void validateGate(RequirementRecord requirement, String service, String env, String tipSha) {
@@ -150,7 +171,7 @@ public class PipelineServiceImpl implements PipelineService {
     }
 
     private long createAndRun(String projectId, String service, String env, List<Task> tasks,
-                              String operator, boolean rollback) {
+                              String operator) {
         if (Env.find(env).isEmpty()) {
             throw ApiException.badRequest("未知环境：" + env);
         }
@@ -166,6 +187,9 @@ public class PipelineServiceImpl implements PipelineService {
                     RequirementRecord requirement = task.requirement();
                     long deploymentId = deployMapper.createDeployment(id, requirement.id(), service, env,
                             requirement.branchName(), task.sha(), operator, now);
+                    if (task.releaseId() != null) {
+                        releaseTargetMapper.insertTarget(deploymentId, task.releaseId());
+                    }
                     for (DeploySteps.Definition step : DeploySteps.ALL) {
                         deployMapper.createStep(deploymentId, step.seq(), step.name());
                     }
@@ -181,7 +205,7 @@ public class PipelineServiceImpl implements PipelineService {
             throw ApiException.conflict("当前环境正在部署，请勿重复提交");
         }
 
-        executor.submit(() -> runPipeline(projectId, batchId, service, env, rollback));
+        executor.submit(() -> runPipeline(projectId, batchId, service, env));
         return batchId;
     }
 
@@ -208,7 +232,7 @@ public class PipelineServiceImpl implements PipelineService {
         }
     }
 
-    private void runPipeline(String projectId, long batchId, String service, String env, boolean rollback) {
+    private void runPipeline(String projectId, long batchId, String service, String env) {
         try {
             List<DeploymentRecord> deployments = deployMapper.findDeployments(batchId);
             for (DeploymentRecord deployment : deployments) {
@@ -216,6 +240,7 @@ public class PipelineServiceImpl implements PipelineService {
                     finishTerminated(batchId, deployment);
                     return;
                 }
+                Long rollbackReleaseId = releaseTargetMapper.findReleaseId(deployment.id()).orElse(null);
                 LocalDateTime start = LocalDateTime.now();
                 deployMapper.updateDeploymentStatus(deployment.id(),
                         DeploymentStatus.RUNNING.code(), start, null, null);
@@ -223,7 +248,7 @@ public class PipelineServiceImpl implements PipelineService {
                         EnvStatus.RUNNING.code(), deployment.sha(), deployment.operator(), start, null);
 
                 RunResult result = GitModes.GITLAB.equals(gitService.mode())
-                        ? runGitlab(projectId, batchId, deployment, rollback)
+                        ? runGitlab(projectId, batchId, deployment, rollbackReleaseId)
                         : runSimulated(batchId, deployment);
 
                 if (result.outcome() == Outcome.ABORTED) {
@@ -249,19 +274,29 @@ public class PipelineServiceImpl implements PipelineService {
                     return;
                 }
 
-                deployMapper.updateDeploymentStatus(deployment.id(),
-                        DeploymentStatus.SUCCESS.code(), null, finished, null);
-                envStateMapper.saveState(deployment.requirementId(), service, env,
-                        EnvStatus.SUCCESS.code(), deployment.sha(), deployment.operator(),
-                        finished, null);
                 if (Env.PROD.code().equals(env)) {
-                    if (rollback) {
-                        deployMapper.rollbackRelease(deployment.requirementId(), service,
-                                deployment.sha(), finished);
-                    } else {
-                        deployMapper.saveRelease(deployment.requirementId(), service,
-                                deployment.sha(), finished);
-                    }
+                    transactionTemplate.executeWithoutResult(status -> {
+                        deployMapper.updateDeploymentStatus(deployment.id(),
+                                DeploymentStatus.SUCCESS.code(), null, finished, null);
+                        envStateMapper.saveState(deployment.requirementId(), service, env,
+                                EnvStatus.SUCCESS.code(), deployment.sha(), deployment.operator(),
+                                finished, null);
+                        if (rollbackReleaseId != null) {
+                            releaseHistoryService.markCurrent(rollbackReleaseId, projectId, service);
+                        } else {
+                            RequirementRecord requirement = requirementMapper
+                                    .findById(deployment.requirementId()).orElse(null);
+                            releaseHistoryService.publish(projectId, service, requirement,
+                                    deployment.sha(), deployment.operator(), batchId,
+                                    deployment.id(), finished);
+                        }
+                    });
+                } else {
+                    deployMapper.updateDeploymentStatus(deployment.id(),
+                            DeploymentStatus.SUCCESS.code(), null, finished, null);
+                    envStateMapper.saveState(deployment.requirementId(), service, env,
+                            EnvStatus.SUCCESS.code(), deployment.sha(), deployment.operator(),
+                            finished, null);
                 }
             }
             deployMapper.updateBatchStatus(batchId, BatchStatus.SUCCESS.code(), LocalDateTime.now());
@@ -304,10 +339,10 @@ public class PipelineServiceImpl implements PipelineService {
     }
 
     private RunResult runGitlab(String projectId, long batchId, DeploymentRecord deployment,
-                                boolean rollback) throws InterruptedException {
-        if (!rollback) {
-            String targetBranch = Env.find(deployment.env())
-                    .map(Env::branch).orElse(deployment.env());
+                                Long rollbackReleaseId) throws InterruptedException {
+        String targetBranch = Env.find(deployment.env())
+                .map(Env::branch).orElse(deployment.env());
+        if (rollbackReleaseId == null) {
             GitService.MergeResult merge = gitService.merge(projectId,
                     deployment.service(), deployment.branchName(), targetBranch);
             if (merge.conflict()) {
@@ -323,10 +358,11 @@ public class PipelineServiceImpl implements PipelineService {
         variables.put(GitVariables.REQUIREMENT_NO, requirement == null ? "" : requirement.reqNo());
 
         long pipelineId = gitService.triggerPipeline(projectId, deployment.service(),
-                deployment.branchName(), variables);
+                targetBranch, variables);
         deployMapper.savePipeline(deployment.id(), pipelineId, "created", LocalDateTime.now());
-        log.info("触发 GitLab pipeline {} deployment={} branch={} env={}",
-                pipelineId, deployment.id(), deployment.branchName(), deployment.env());
+        log.info("触发 GitLab pipeline {} deployment={} branch={} env={} rollback={}",
+                pipelineId, deployment.id(), targetBranch, deployment.env(),
+                rollbackReleaseId != null);
 
         long deadline = System.currentTimeMillis() + timeoutMs;
         GitService.PipelineState state = gitService.pipeline(projectId, deployment.service(), pipelineId);

@@ -4,7 +4,7 @@ import com.zhengte.platform.entity.BatchRecord;
 import com.zhengte.platform.entity.CrRecord;
 import com.zhengte.platform.entity.DeploymentRecord;
 import com.zhengte.platform.entity.EnvStateRecord;
-import com.zhengte.platform.entity.ReleaseRecord;
+import com.zhengte.platform.entity.ReleaseHistoryRecord;
 import com.zhengte.platform.entity.RequirementBranchRecord;
 import com.zhengte.platform.entity.RequirementRecord;
 import com.zhengte.platform.entity.StepRecord;
@@ -38,7 +38,5 @@ public interface RecordMapper {
 
     StepRecord toStep(Tables.DeploymentStep row);
 
-    @Mapping(source = "releasedAt", target = "currentTime")
-    @Mapping(source = "prevReleasedAt", target = "previousTime")
-    ReleaseRecord toRelease(Tables.ProdRelease row);
+    ReleaseHistoryRecord toReleaseHistory(Tables.ReleaseHistory row);
 }
