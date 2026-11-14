@@ -7,8 +7,10 @@
 .DS_Store
 Thumbs.db
 
-# 已拆分归档的演示应用（独立 Git 仓库）
+# 独立应用仓库（各自有 Git 历史，不纳入平台仓库）
 app/
+app-api/
+app-web/
 
 # 构建产物与依赖
 platform/server/target/

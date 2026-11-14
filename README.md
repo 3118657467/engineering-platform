@@ -11,7 +11,10 @@ engineering-platform/
 │  ├─ web/            Vue 3 + Vite + Element Plus + Pinia
 │  ├─ prototype/      已确认的静态原型
 │  └─ docs/           架构图、新仓库 CI 模板
-└─ infra/             本地基础设施说明与清单（k3s / MySQL / 启动脚本）
+├─ infra/             本地基础设施说明与清单（k3s / MySQL / 启动脚本）
+├─ app-api/           后端应用（独立仓库 root/app-api 的本地克隆，不纳入本仓库）
+├─ app-web/           前端应用（独立仓库 root/app-web 的本地克隆，不纳入本仓库）
+└─ app/               早期一体化 monorepo，仅作历史归档（不纳入本仓库）
 ```
 
 ## 能力概览
@@ -33,5 +36,6 @@ engineering-platform/
 
 ## 说明
 
-- `app/` 是早期一体化演示应用，已通过 `git subtree split` 拆成 `app-api` / `app-web` 两个仓库；本地 `app/` 是独立 Git 仓库，不包含在本仓库中。
+- `app-api/`、`app-web/` 是前后端两个独立应用，分别对应 GitLab 的 `root/app-api`、`root/app-web`，本地已克隆为两个独立 Git 仓库；它们不包含在本平台仓库中。
+- `app/` 是拆分前的一体化 monorepo，仅保留历史归档，不再用于开发。
 - 仓库中的数据库密码、Token 等均为本地开发占位值，不可用于任何真实环境。
