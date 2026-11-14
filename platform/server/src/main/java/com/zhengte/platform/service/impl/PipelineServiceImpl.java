@@ -236,7 +236,7 @@ public class PipelineServiceImpl implements PipelineService {
                     deployMapper.updateDeploymentStatus(deployment.id(),
                             DeploymentStatus.FAILED.code(), null, finished, result.error());
                     envStateMapper.markReady(deployment.requirementId(), service, env, finished);
-                    deployMapper.updateBatchStatus(batchId, BatchStatus.TERMINATED.code(), finished);
+                    deployMapper.updateBatchStatus(batchId, BatchStatus.FAILED.code(), finished);
                     return;
                 }
                 if (result.outcome() == Outcome.CONFLICT) {
@@ -245,7 +245,7 @@ public class PipelineServiceImpl implements PipelineService {
                     envStateMapper.saveState(deployment.requirementId(), service, env,
                             EnvStatus.CONFLICT.code(), deployment.sha(), deployment.operator(),
                             finished, result.error());
-                    deployMapper.updateBatchStatus(batchId, BatchStatus.TERMINATED.code(), finished);
+                    deployMapper.updateBatchStatus(batchId, BatchStatus.FAILED.code(), finished);
                     return;
                 }
 
@@ -278,7 +278,7 @@ public class PipelineServiceImpl implements PipelineService {
                 envStateMapper.markReady(deployment.requirementId(), deployment.service(),
                         deployment.env(), now);
             });
-            deployMapper.updateBatchStatus(batchId, BatchStatus.TERMINATED.code(), now);
+            deployMapper.updateBatchStatus(batchId, BatchStatus.FAILED.code(), now);
         } finally {
             abortedBatches.remove(batchId);
             deployMapper.deleteLockByBatch(batchId);

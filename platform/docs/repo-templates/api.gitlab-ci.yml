@@ -7,7 +7,6 @@ stages:
 workflow:
   rules:
     - if: '$DEPLOY_ENV'
-    - if: '$CI_COMMIT_BRANCH =~ /^(dev|test|uat|main)$/'
     - when: never
 
 default:
@@ -63,10 +62,12 @@ verify:
   script:
     - |
       ok=0
-      kubectl -n "$NAMESPACE" port-forward svc/api 18080:8080 >/tmp/port-forward.log 2>&1 &
+      PF_PORT=$((18000 + CI_PIPELINE_ID % 2000))
+      kubectl -n "$NAMESPACE" port-forward svc/api ${PF_PORT}:8080 >/tmp/port-forward.log 2>&1 &
       PF=$!
+      trap 'kill $PF 2>/dev/null || true' EXIT
       for i in $(seq 1 40); do
-        if curl -fsS "http://localhost:18080/api/info" | grep -q '"db":true'; then
+        if curl -fsS "http://localhost:${PF_PORT}/api/info" | grep -q '"db":true'; then
           ok=1
           break
         fi

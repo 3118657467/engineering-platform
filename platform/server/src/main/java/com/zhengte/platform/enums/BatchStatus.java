@@ -6,6 +6,7 @@ public enum BatchStatus implements CodedEnum {
 
     RUNNING("RUNNING"),
     SUCCESS("SUCCESS"),
+    FAILED("FAILED"),
     TERMINATED("TERMINATED");
 
     private final String code;

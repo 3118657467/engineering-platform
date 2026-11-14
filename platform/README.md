@@ -150,6 +150,8 @@ npm run dev
 - 合并：部署前平台先用 Merge Request API 把需求分支合入**对应仓库**的环境分支（`dev/test/uat`，prod 合入 `main`）；有冲突则环境状态置 `CONFLICT`、不触发流水线，MR 留在 GitLab 供解决。
 - 触发：`POST /projects/{id}/pipeline`，`ref` 用该仓库的需求分支，变量带 `DEPLOY_ENV`、`DEPLOY_SERVICE`、`DEPLOY_SHA`、`REQ_NO`。
 - CI 在每个 job 的 `before_script` 里 `git checkout "$DEPLOY_SHA"`，镜像 tag 也用该 SHA，保证「每一级部署同一份提交」。
+- 两仓 CI 的 `workflow` 只接受带 `DEPLOY_ENV` 的流水线（平台触发）；合并到 dev/test/uat/main 不会再自动跑部署流水线，避免「平台流水线 + 分支流水线」并发重复部署。
+- api 的 verify 用 `PF_PORT=$((18000 + CI_PIPELINE_ID % 2000))` 做 port-forward 并 `trap` 清理，并发 verify 不会互相抢 18080。
 - 状态回写：平台每 2 秒轮询 pipeline 与 jobs，按 job 名映射到五个步骤——`build` → 编译 + 镜像构建，`deploy` → 部署到 k3s，`verify` → 健康检查；「拉取代码」在 runner 开始执行时置成功。
 - 终止：`abort` 或轮询检测到 batch 已终止时调用 GitLab `POST /pipelines/{id}/cancel`，未完成步骤置失败。
 - 超时：默认 30 分钟（`platform.pipeline.timeout-seconds`）。

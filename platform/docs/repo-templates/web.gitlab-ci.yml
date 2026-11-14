@@ -7,7 +7,6 @@ stages:
 workflow:
   rules:
     - if: '$DEPLOY_ENV'
-    - if: '$CI_COMMIT_BRANCH =~ /^(dev|test|uat|main)$/'
     - when: never
 
 default:

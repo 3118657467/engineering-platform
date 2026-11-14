@@ -37,6 +37,9 @@
         部署成功：{{ pipeline.requirements.map((item) => item.id).join('、') }}
         已发布到 {{ env }}（{{ pipeline.startedAt }} 开始）
       </div>
+      <div v-else-if="pipeline.status === 'failed'" class="error-banner">
+        部署失败，失败步骤已标红，环境已回到可部署状态。
+      </div>
       <div v-else-if="pipeline.status === 'terminated'" class="error-banner">
         部署已终止，当前步骤已置为失败，环境已回到可部署状态。
       </div>
@@ -70,6 +73,7 @@ const steps = computed(() => current.value?.steps || []);
 
 const statusTitle = computed(() => {
   if (props.pipeline.status === 'running') return '部署进行中';
+  if (props.pipeline.status === 'failed') return '部署失败';
   if (props.pipeline.status === 'terminated') return '部署已终止';
   return '部署完成';
 });
