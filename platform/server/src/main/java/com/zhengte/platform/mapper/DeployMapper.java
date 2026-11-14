@@ -180,10 +180,11 @@ public interface DeployMapper extends BaseMapper<Tables.DeployBatch> {
         return rows.stream().findFirst().map(RecordMapper.INSTANCE::toBatch);
     }
 
-    default Optional<BatchRecord> findRunningBatch(String projectId, String service) {
+    default Optional<BatchRecord> findRunningBatch(String projectId, String service, String env) {
         List<Tables.DeployBatch> rows = selectList(Wrappers.<Tables.DeployBatch>lambdaQuery()
                 .eq(Tables.DeployBatch::getProjectId, projectId)
                 .eq(Tables.DeployBatch::getService, service)
+                .eq(Tables.DeployBatch::getEnv, env)
                 .eq(Tables.DeployBatch::getStatus, "RUNNING")
                 .orderByDesc(Tables.DeployBatch::getId)
                 .last("LIMIT 1"));

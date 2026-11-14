@@ -4,7 +4,7 @@
       <div class="deploy-title">
         <h1>{{ title }}</h1>
         <label class="picker page-picker">项目
-          <select v-model="projectId" :disabled="envLocked" @change="changeProject">
+          <select v-model="projectId" @change="changeProject">
             <option v-for="item in projects" :key="item.id" :value="item.id">{{ item.name }}</option>
           </select>
         </label>
@@ -18,7 +18,6 @@
             class="env-node"
             :class="{ active: index === activeIndex, done: index < activeIndex }"
             type="button"
-            :disabled="envLocked"
             @click="selectEnv(item.key)"
           >
             <span class="env-circle">{{ item.label }}</span>
@@ -32,7 +31,7 @@
       </div>
       <div v-if="board.running" class="env-lock-hint">
         <span class="pill warning"><i></i>{{ board.running.env }} 部署中</span>
-        <span>操作人 {{ board.running.operatorName }}；部署结束前不能切换环境或项目</span>
+        <span>操作人 {{ board.running.operatorName }}；各环境互不影响，可随时切换查看其他环境</span>
       </div>
       <div class="env-lock-hint">
         <span class="muted-text">环境隔离：命名空间 <code>{{ projectId }}-{{ env }}</code>，Pod / Service / 数据均按环境独立</span>
@@ -50,7 +49,7 @@
               class="btn small"
               type="button"
               title="按各分支最新提交重新部署当前环境的已部署分支"
-              :disabled="busy || envLocked"
+              :disabled="busy || Boolean(board.running)"
               @click="redeployAll"
             >
               重新部署
@@ -409,7 +408,6 @@ let requestSeq = 0;
 const title = computed(() => (props.service === 'api' ? '后端部署' : '前端部署'));
 const serviceLabel = computed(() => (props.service === 'api' ? '后端 api · app-api' : '前端 web · app-web'));
 const busy = computed(() => loading.value);
-const envLocked = computed(() => Boolean(board.value.running));
 const activeIndex = computed(() => envs.findIndex((item) => item.key === env.value));
 const currentProject = computed(() => projects.value.find((item) => item.id === projectId.value) || null);
 const selectablePending = computed(() => board.value.pending.filter((row) => row.gate.ok));
@@ -477,10 +475,6 @@ function schedulePolling() {
 }
 
 function selectEnv(key) {
-  if (envLocked.value) {
-    ElMessage.error(`${board.value.running.env} 环境正在部署，完成后再切换环境`);
-    return;
-  }
   if (key === env.value) return;
   env.value = key;
   selected.value = [];
@@ -488,10 +482,6 @@ function selectEnv(key) {
 }
 
 function changeProject() {
-  if (envLocked.value) {
-    ElMessage.error(`${board.value.running.env} 环境正在部署，完成后再切换项目`);
-    return;
-  }
   selected.value = [];
   loadBoard();
 }

@@ -159,7 +159,7 @@ public class DeployServiceImpl implements DeployService {
                 ? prodReleases(projectId, service, requirements)
                 : List.of();
 
-        Views.Deploying running = deployMapper.findRunningBatch(projectId, service)
+        Views.Deploying running = deployMapper.findRunningBatch(projectId, service, env)
                 .map(batch -> new Views.Deploying(batch.env(), batch.operator(),
                         names.getOrDefault(batch.operator(), batch.operator())))
                 .orElse(null);

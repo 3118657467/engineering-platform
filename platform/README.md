@@ -208,7 +208,7 @@ Windows 侧已把 WSL 的 kubeconfig 放到 `%USERPROFILE%\.kube\config`（serve
 - web 与 api 跨命名空间通信：web 的 nginx upstream 为 `api.<API_NAMESPACE>.svc.cluster.local:8080`，`API_NAMESPACE` 由 CI 渲染进 web.yaml（`app-api-<env>`）。
 - 旧的一体化 `app-<env>` 命名空间已删除；删除前 30081~30083 能打开页面，是因为旧 api/web Pod 还在，并不属于 app-api / app-web。
 - NodePort 仍按环境分配（30081~30084），同一环境只允许一个 web 应用占用；新增 web 应用需要另分配端口或改 Ingress，这是当前多应用支持的限制。
-- 部署页在任一环境有 RUNNING 批次时锁定环境/项目切换，并显示操作人；锁是按 `project + service + env` 建立的，不同环境可并行、互不影响。
+- 部署页不因某个环境在部署而锁定环境/项目切换：多人可分别在不同环境并行操作；当前环境有 RUNNING 时只显示操作人并禁止该环境重复提交，锁按 `project + service + env` 建立。
 
 平台将来部署进集群时，用独立 ServiceAccount 收窄权限（按环境各建一份）：
 
