@@ -3,7 +3,7 @@
 -- 需求、分支、部署等业务数据从空白开始，由验收流程现场产生。
 
 INSERT IGNORE INTO users (username, display_name, role, password_hash) VALUES
-  ('devuser', '开发者', 'DEV',      '16bc9596d450818ffec41644d9d954c696d95c1e4db2e8552c5aef11e2f0eeb3'),
+  ('devuser',      '开发者', 'DEV',      '75076473d5425cf8a5ed419af5971e2cf0d7390d93e5c34331685a55855ca434'),
   ('zhanggong',    '张工',   'CR_ADMIN', '2379b9b1dc92505689d5738e254f1fd9a2fa047332c81320406c563b25760403'),
   ('ligong',       '李工',   'CR_ADMIN', 'ad5fe983d6beab0d0cf4524d68fff8919d5ad77730086751030f28bdf3585dc4');
 
