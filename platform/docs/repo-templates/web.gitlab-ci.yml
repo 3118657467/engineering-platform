@@ -1,0 +1,85 @@
+stages:
+  - build
+  - deploy
+  - verify
+  - cleanup
+
+workflow:
+  rules:
+    - if: '$DEPLOY_ENV'
+    - if: '$CI_COMMIT_BRANCH =~ /^(dev|test|uat|main)$/'
+    - when: never
+
+default:
+  tags:
+    - local
+  before_script:
+    - export TAG="${CI_COMMIT_REF_SLUG}-${DEPLOY_SHA:-$CI_COMMIT_SHORT_SHA}"
+    - export ENV_NAME="${DEPLOY_ENV:-$CI_COMMIT_BRANCH}"
+    - |
+      if [ -n "$DEPLOY_SHA" ]; then
+        git fetch --all --quiet
+        git checkout "$DEPLOY_SHA"
+      fi
+
+build:
+  stage: build
+  script:
+    - |
+      set -e
+      npm install --no-audit --no-fund --registry=https://registry.npmmirror.com
+      npm run build
+      docker build -t "app/web:${TAG}" .
+
+deploy:
+  stage: deploy
+  script:
+    - |
+      case "$ENV_NAME" in
+        dev)  NODEPORT=30081 ;;
+        test) NODEPORT=30082 ;;
+        uat)  NODEPORT=30083 ;;
+        prod) NODEPORT=30084 ;;
+        *) echo "未知环境：$ENV_NAME"; exit 1 ;;
+      esac
+      NAMESPACE="app-web-${ENV_NAME}"
+      API_NAMESPACE="app-api-${ENV_NAME}"
+      docker save "app/web:${TAG}" | sudo k3s ctr images import -
+      kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+      sed -e "s/__ENV__/${ENV_NAME}/g" \
+          -e "s/__TAG__/${TAG}/g" \
+          -e "s/__NODEPORT__/${NODEPORT}/g" \
+          -e "s/__API_NAMESPACE__/${API_NAMESPACE}/g" deploy/k8s/web.yaml \
+        | kubectl -n "$NAMESPACE" apply -f -
+      kubectl -n "$NAMESPACE" rollout status deployment/web --timeout=120s
+      echo "NODEPORT=${NODEPORT}" > build.env
+      echo "NAMESPACE=${NAMESPACE}" >> build.env
+  artifacts:
+    reports:
+      dotenv: build.env
+
+verify:
+  stage: verify
+  script:
+    - |
+      ok=0
+      for i in $(seq 1 40); do
+        if curl -fsS "http://localhost:${NODEPORT}/" >/dev/null; then
+          ok=1
+          break
+        fi
+        sleep 3
+      done
+      if [ "$ok" != "1" ]; then
+        kubectl -n "$NAMESPACE" get pods
+        kubectl -n "$NAMESPACE" logs deploy/web --tail=50 || true
+        exit 1
+      fi
+      kubectl -n "$NAMESPACE" get pods
+      echo "verify OK: web http://localhost:${NODEPORT}/"
+
+cleanup:
+  stage: cleanup
+  when: always
+  script:
+    - docker image prune -f

@@ -1,0 +1,47 @@
+server:
+  port: 8090
+
+spring:
+  datasource:
+    # Windows 侧通过 WSL 的 socat 服务（0.0.0.0:3306 → NodePort 30306）访问 k3s 里的 MySQL
+    url: jdbc:mysql://localhost:3306/platform?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+    username: platform
+    password: platform_pw
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+  sql:
+    init:
+      mode: always
+      encoding: UTF-8
+      schema-locations: classpath:schema.sql
+      data-locations: classpath:data.sql
+      continue-on-error: false
+
+platform:
+  pipeline:
+    step-delay-ms: 1500      # mock 执行器每步耗时
+    poll-interval-ms: 2000   # gitlab 执行器轮询间隔
+    timeout-seconds: 1800    # gitlab 流水线超时
+    session-days: 7
+  runtime:
+    mode: k3s                # mock | k3s
+    log-tail-lines: 200
+  git:
+    mode: ${PLATFORM_GIT_MODE:mock}          # mock | gitlab
+    gitlab:
+      # Windows 上 IPv4:8080 被 Steam 占用，GitLab 由 WSL 转发到 [::1]:8080
+      url: "${GITLAB_URL:http://[::1]:8080}"
+      token: "${GITLAB_TOKEN:}"
+      default-ref: main
+      projects:
+        app-api:
+          api: ${GITLAB_PROJECT_APP_API:5}
+        app-web:
+          web: ${GITLAB_PROJECT_APP_WEB:6}
+
+mybatis-plus:
+  global-config:
+    banner: false
+  configuration:
+    map-underscore-to-camel-case: true

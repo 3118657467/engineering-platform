@@ -1,0 +1,89 @@
+stages:
+  - build
+  - deploy
+  - verify
+  - cleanup
+
+workflow:
+  rules:
+    - if: '$DEPLOY_ENV'
+    - if: '$CI_COMMIT_BRANCH =~ /^(dev|test|uat|main)$/'
+    - when: never
+
+default:
+  tags:
+    - local
+  before_script:
+    - export TAG="${CI_COMMIT_REF_SLUG}-${DEPLOY_SHA:-$CI_COMMIT_SHORT_SHA}"
+    - export ENV_NAME="${DEPLOY_ENV:-$CI_COMMIT_BRANCH}"
+    - |
+      if [ -n "$DEPLOY_SHA" ]; then
+        git fetch --all --quiet
+        git checkout "$DEPLOY_SHA"
+      fi
+
+build:
+  stage: build
+  script:
+    - |
+      set -e
+      export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+      mvn -s docker-maven-settings.xml -B -q -DskipTests package
+      docker build -t "app/api:${TAG}" .
+
+deploy:
+  stage: deploy
+  script:
+    - |
+      case "$ENV_NAME" in
+        dev)  DB_PASSWORD="$DB_DEV_PASSWORD" ;;
+        test) DB_PASSWORD="$DB_TEST_PASSWORD" ;;
+        uat)  DB_PASSWORD="$DB_UAT_PASSWORD" ;;
+        prod) DB_PASSWORD="$DB_PROD_PASSWORD" ;;
+        *) echo "未知环境：$ENV_NAME"; exit 1 ;;
+      esac
+      DB_NAME="app_${ENV_NAME}"
+      NAMESPACE="app-api-${ENV_NAME}"
+      docker save "app/api:${TAG}" | sudo k3s ctr images import -
+      kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+      kubectl -n "$NAMESPACE" create secret generic db-secret \
+        --from-literal=password="$DB_PASSWORD" --dry-run=client -o yaml | kubectl apply -f -
+      sed -e "s/__ENV__/${ENV_NAME}/g" \
+          -e "s/__TAG__/${TAG}/g" \
+          -e "s/__DB_NAME__/${DB_NAME}/g" deploy/k8s/api.yaml \
+        | kubectl -n "$NAMESPACE" apply -f -
+      kubectl -n "$NAMESPACE" rollout status deployment/api --timeout=240s
+      echo "NAMESPACE=${NAMESPACE}" > build.env
+  artifacts:
+    reports:
+      dotenv: build.env
+
+verify:
+  stage: verify
+  script:
+    - |
+      ok=0
+      kubectl -n "$NAMESPACE" port-forward svc/api 18080:8080 >/tmp/port-forward.log 2>&1 &
+      PF=$!
+      for i in $(seq 1 40); do
+        if curl -fsS "http://localhost:18080/api/info" | grep -q '"db":true'; then
+          ok=1
+          break
+        fi
+        sleep 3
+      done
+      kill $PF 2>/dev/null || true
+      if [ "$ok" != "1" ]; then
+        cat /tmp/port-forward.log || true
+        kubectl -n "$NAMESPACE" get pods
+        kubectl -n "$NAMESPACE" logs deploy/api --tail=50 || true
+        exit 1
+      fi
+      kubectl -n "$NAMESPACE" get pods
+      echo "verify OK: api /api/info db=true"
+
+cleanup:
+  stage: cleanup
+  when: always
+  script:
+    - docker image prune -f

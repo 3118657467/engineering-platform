@@ -1,0 +1,12 @@
+[Unit]
+Description=Forward localhost:3306 to k3s MySQL NodePort 30306 (for Windows-hosted backend)
+After=network-online.target k3s.service
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/bin/socat TCP-LISTEN:3306,fork,reuseaddr,bind=0.0.0.0 TCP:127.0.0.1:30306
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

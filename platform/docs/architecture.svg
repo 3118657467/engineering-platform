@@ -1,0 +1,192 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1720" height="1240" viewBox="0 0 1720 1240" font-family="Segoe UI, Microsoft YaHei, sans-serif">
+  <defs>
+    <marker id="arrowBlue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#409eff"/>
+    </marker>
+    <marker id="arrowPurple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#7c4dff"/>
+    </marker>
+    <marker id="arrowGreen" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#33a860"/>
+    </marker>
+    <marker id="arrowOrange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#e6a23c"/>
+    </marker>
+    <marker id="arrowGray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#8a94a6"/>
+    </marker>
+  </defs>
+
+  <rect width="1720" height="1240" fill="#ffffff"/>
+
+  <text x="30" y="44" font-size="26" font-weight="700" fill="#1f2d3d">工程平台本地架构（Windows + WSL2 / GitLab + Runner + k3s）</text>
+  <text x="30" y="74" font-size="13" fill="#7a8599">2026-11-14 · 平台 runtime=k3s、git=gitlab · 全本地，无云资源</text>
+
+  <!-- ============ Lane 1: Windows ============ -->
+  <rect x="30" y="100" width="480" height="800" rx="14" fill="#f7f9fc" stroke="#c8d3e0"/>
+  <rect x="52" y="116" width="10" height="10" rx="2" fill="#409eff"/>
+  <text x="70" y="128" font-size="17" font-weight="700" fill="#1f2d3d">Windows 11 宿主（D:\develop）</text>
+
+  <rect x="55" y="150" width="430" height="100" rx="10" fill="#ffffff" stroke="#c8d3e0"/>
+  <text x="75" y="178" font-size="15" font-weight="700" fill="#1f2d3d">浏览器</text>
+  <text x="75" y="202" font-size="13" fill="#4a5568">http://localhost:5173（平台前端）</text>
+  <text x="75" y="224" font-size="13" fill="#4a5568">http://localhost:30081（app dev）</text>
+
+  <rect x="55" y="270" width="430" height="110" rx="10" fill="#ffffff" stroke="#c8d3e0"/>
+  <text x="75" y="298" font-size="15" font-weight="700" fill="#1f2d3d">平台前端 · Vue3 + Vite + Element Plus（5173）</text>
+  <text x="75" y="322" font-size="13" fill="#4a5568">Vite proxy /api → http://localhost:8090</text>
+  <text x="75" y="344" font-size="13" fill="#4a5568">页面：登录 / 需求 / 部署 / 审批</text>
+
+  <rect x="55" y="400" width="430" height="170" rx="10" fill="#ffffff" stroke="#c8d3e0"/>
+  <text x="75" y="428" font-size="15" font-weight="700" fill="#1f2d3d">平台后端 · Spring Boot 3.3.5 / Java 17（8090）</text>
+  <text x="75" y="452" font-size="13" fill="#4a5568">MyBatis-Plus · MapStruct · fabric8 6.13.4</text>
+  <text x="75" y="474" font-size="13" fill="#4a5568">双仓路由 · 分支 / CR / 门禁 / 五步流水线</text>
+  <text x="75" y="496" font-size="13" fill="#4a5568">kubeconfig：~/.kube/config（Windows 侧）</text>
+  <text x="75" y="526" font-size="13" fill="#8a94a6">本地开发：JDK 17 + Maven 3.10（D:\develop）</text>
+  <text x="75" y="550" font-size="13" fill="#8a94a6">平台库：MySQL platform（shared 实例）</text>
+
+  <rect x="55" y="590" width="430" height="280" rx="10" fill="#ffffff" stroke="#c8d3e0"/>
+  <text x="75" y="618" font-size="15" font-weight="700" fill="#1f2d3d">访问与网络</text>
+  <text x="75" y="642" font-size="13" fill="#4a5568">GitLab：http://[::1]:8080</text>
+  <text x="75" y="664" font-size="13" fill="#c05621">IPv4:8080 被 Steam 占用，必须走 IPv6</text>
+  <text x="75" y="686" font-size="13" fill="#4a5568">平台 API：http://localhost:8090</text>
+  <text x="75" y="708" font-size="13" fill="#4a5568">应用 dev：http://localhost:30081</text>
+  <text x="75" y="730" font-size="13" fill="#4a5568">NodePort 无监听进程，需 socat 转发</text>
+  <text x="75" y="752" font-size="13" fill="#4a5568">socat（WSL systemd）：3306→30306</text>
+  <text x="75" y="774" font-size="13" fill="#4a5568">　　　　　　　　　　30081→30081</text>
+  <text x="75" y="796" font-size="13" fill="#8a94a6">Windows ↔ WSL localhost 双向互通</text>
+  <text x="75" y="818" font-size="13" fill="#8a94a6">test/uat/prod NodePort：30082 / 30083 / 30084</text>
+  <text x="75" y="840" font-size="13" fill="#8a94a6">（dev/test/uat/prod 四个转发均已配置）</text>
+
+  <!-- browser -> frontend -> backend -->
+  <line x1="270" y1="250" x2="270" y2="268" stroke="#8a94a6" stroke-width="1.5" marker-end="url(#arrowGray)"/>
+  <line x1="270" y1="380" x2="270" y2="398" stroke="#8a94a6" stroke-width="1.5" marker-end="url(#arrowGray)"/>
+
+  <!-- ① backend -> GitLab -->
+  <path d="M485,440 H515 V330 H583" fill="none" stroke="#409eff" stroke-width="2" marker-end="url(#arrowBlue)"/>
+  <circle cx="515" cy="390" r="11" fill="#409eff"/>
+  <text x="515" y="395" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">①</text>
+
+  <!-- ④ backend -> k3s API -->
+  <path d="M485,530 H525 V875 H1103 V825 H1114" fill="none" stroke="#7c4dff" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arrowPurple)"/>
+  <circle cx="525" cy="700" r="11" fill="#7c4dff"/>
+  <text x="525" y="705" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">④</text>
+
+  <!-- ============ Lane 2: WSL Docker + Runner ============ -->
+  <rect x="540" y="100" width="520" height="800" rx="14" fill="#f4f8ff" stroke="#b9d0ef"/>
+  <rect x="562" y="116" width="10" height="10" rx="2" fill="#2b7de9"/>
+  <text x="580" y="128" font-size="17" font-weight="700" fill="#1f2d3d">WSL2 Ubuntu 24.04（systemd）</text>
+
+  <rect x="565" y="150" width="470" height="330" rx="10" fill="#eaf3ff" stroke="#a9c7f5"/>
+  <text x="585" y="178" font-size="15" font-weight="700" fill="#1f2d3d">Docker Engine 29.9.3</text>
+
+  <rect x="585" y="195" width="430" height="210" rx="9" fill="#ffffff" stroke="#a9c7f5"/>
+  <text x="603" y="220" font-size="14" font-weight="700" fill="#1f2d3d">GitLab CE 容器（gitlab）</text>
+  <text x="603" y="244" font-size="13" fill="#4a5568">端口 8080→8080 · 2222→22</text>
+  <text x="603" y="266" font-size="13" fill="#4a5568">卷 /srv/gitlab/{config,data,logs}</text>
+  <text x="603" y="288" font-size="13" fill="#4a5568">仓库：root/app-api · root/app-web</text>
+  <text x="603" y="310" font-size="13" fill="#4a5568">各自 main/dev/test/uat + 需求同名分支</text>
+  <text x="603" y="332" font-size="13" fill="#4a5568">CI：build → deploy → verify → cleanup（每仓一套）</text>
+  <text x="603" y="354" font-size="13" fill="#c05621">部署前 MR 合并：需求分支 → 该仓环境分支</text>
+  <text x="603" y="376" font-size="13" fill="#c05621">冲突 → 环境 CONFLICT，不触发流水线</text>
+
+  <text x="585" y="436" font-size="13" font-weight="600" fill="#1f2d3d">本地基础镜像（debootstrap 构建，绕开 Docker Hub）</text>
+  <text x="585" y="458" font-size="13" fill="#4a5568">app/api-base:17-jre · app/web-base:nginx</text>
+
+  <!-- GitLab <-> Runner -->
+  <line x1="1010" y1="405" x2="1010" y2="498" stroke="#e6a23c" stroke-width="2" marker-end="url(#arrowOrange)" marker-start="url(#arrowOrange)"/>
+
+  <rect x="565" y="500" width="470" height="310" rx="10" fill="#fff6e8" stroke="#f0c78a"/>
+  <text x="585" y="528" font-size="15" font-weight="700" fill="#1f2d3d">GitLab Runner 16.10.1</text>
+  <text x="585" y="552" font-size="13" fill="#4a5568">systemd · shell executor · root · tag=local</text>
+  <text x="585" y="576" font-size="13" fill="#4a5568">git checkout $DEPLOY_SHA（每级同一提交）</text>
+  <text x="585" y="600" font-size="13" fill="#4a5568">按仓库执行 mvn package 或 npm run build</text>
+  <text x="585" y="624" font-size="13" fill="#4a5568">docker build · save | k3s ctr images import</text>
+  <text x="585" y="648" font-size="13" fill="#4a5568">kubectl apply · rollout status</text>
+  <text x="585" y="680" font-size="13" fill="#b7791f">宿主机工具链：Maven 3.8.7 / JDK 17</text>
+  <text x="585" y="702" font-size="13" fill="#b7791f">Node 18 / npm 9 / Docker / kubectl</text>
+  <text x="585" y="734" font-size="13" fill="#8a94a6">镜像库不共享：Docker ≠ k3s containerd</text>
+  <text x="585" y="756" font-size="13" fill="#8a94a6">靠 save + import 搬运（imagePullPolicy=IfNotPresent）</text>
+  <text x="585" y="788" font-size="13" fill="#8a94a6">CI 变量：DB_DEV/TEST/UAT/PROD_PASSWORD</text>
+  <text x="585" y="842" font-size="12" fill="#8a94a6">WSL 发行版目录：D:\wsl\Ubuntu2404（systemd 管理）</text>
+  <text x="585" y="864" font-size="12" fill="#8a94a6">GitLab 跑在 Docker 容器；Runner 与 k3s 是 systemd 原生服务</text>
+
+  <!-- ② Runner -> k3s -->
+  <path d="M1035,600 H1080 V500 H1113" fill="none" stroke="#33a860" stroke-width="2" marker-end="url(#arrowGreen)"/>
+  <circle cx="1080" cy="520" r="11" fill="#33a860"/>
+  <text x="1080" y="525" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">②</text>
+
+  <!-- ============ Lane 3: k3s ============ -->
+  <rect x="1090" y="100" width="600" height="800" rx="14" fill="#f2fbf5" stroke="#a7dcb6"/>
+  <rect x="1112" y="116" width="10" height="10" rx="2" fill="#33a860"/>
+  <text x="1130" y="128" font-size="17" font-weight="700" fill="#1f2d3d">k3s v1.37.2（systemd 原生 · containerd · traefik 关闭）</text>
+
+  <rect x="1115" y="150" width="550" height="190" rx="10" fill="#ffffff" stroke="#a7dcb6"/>
+  <text x="1135" y="178" font-size="15" font-weight="700" fill="#1f2d3d">namespace shared · MySQL</text>
+  <text x="1135" y="202" font-size="13" fill="#4a5568">StatefulSet mysql-0 + PVC（local-path）</text>
+  <text x="1135" y="226" font-size="13" fill="#4a5568">Service :3306 · NodePort 30306</text>
+  <text x="1135" y="250" font-size="13" fill="#4a5568">库：platform · app_dev · app_test</text>
+  <text x="1135" y="272" font-size="13" fill="#4a5568">　　　app_uat · app_prod（账号=库名）</text>
+  <text x="1135" y="296" font-size="13" fill="#237a45">mysql.shared.svc.cluster.local:3306</text>
+
+  <rect x="1115" y="365" width="550" height="230" rx="10" fill="#ffffff" stroke="#a7dcb6"/>
+  <text x="1135" y="393" font-size="15" font-weight="700" fill="#1f2d3d">namespace app-api-dev / app-web-dev</text>
+  <text x="1135" y="417" font-size="13" fill="#4a5568">api  Deployment 1~10 副本 · ClusterIP :8080</text>
+  <text x="1135" y="441" font-size="13" fill="#4a5568">web  Deployment 1~10 副本 · NodePort 30081</text>
+  <text x="1135" y="465" font-size="13" fill="#4a5568">镜像 app/api|web:&lt;需求分支-SHA&gt;</text>
+  <text x="1135" y="489" font-size="13" fill="#4a5568">readinessProbe：/api/info · /</text>
+  <text x="1135" y="513" font-size="13" fill="#4a5568">滚动更新：先起新 Pod，Ready 后旧 Pod 终止</text>
+  <text x="1135" y="545" font-size="13" fill="#8a94a6">CR_ADMIN 可扩容 / 重启；Pod 日志/YAML/Events 由平台透出</text>
+  <text x="1135" y="567" font-size="13" fill="#8a94a6">web NodePort 经 socat 映射到 Windows localhost:30081</text>
+
+  <rect x="1115" y="620" width="550" height="130" rx="10" fill="#ffffff" stroke="#a7dcb6"/>
+  <text x="1135" y="648" font-size="15" font-weight="700" fill="#1f2d3d">其他环境命名空间</text>
+  <text x="1135" y="672" font-size="13" fill="#4a5568">app-api-test + app-web-test · NodePort 30082</text>
+  <text x="1135" y="694" font-size="13" fill="#4a5568">app-api-uat + app-web-uat · NodePort 30083</text>
+  <text x="1135" y="716" font-size="13" fill="#4a5568">app-api-prod + app-web-prod · NodePort 30084</text>
+
+  <rect x="1115" y="775" width="550" height="95" rx="10" fill="#ffffff" stroke="#a7dcb6"/>
+  <text x="1135" y="803" font-size="15" font-weight="700" fill="#1f2d3d">k3s API / 凭据</text>
+  <text x="1135" y="827" font-size="13" fill="#4a5568">https://127.0.0.1:6443（kubeconfig 已复制到 Windows）</text>
+  <text x="1135" y="851" font-size="13" fill="#8a94a6">/etc/rancher/k3s/k3s.yaml · EC 私钥需 BouncyCastle</text>
+
+  <!-- app pods -> mysql -->
+  <line x1="1390" y1="340" x2="1390" y2="363" stroke="#33a860" stroke-width="2" marker-end="url(#arrowGreen)" marker-start="url(#arrowGreen)"/>
+  <text x="1404" y="356" font-size="11.5" font-weight="600" fill="#237a45">⑤ app_&lt;env&gt; 库</text>
+
+  <!-- ============ Bottom flows ============ -->
+  <rect x="30" y="915" width="1660" height="295" rx="14" fill="#ffffff" stroke="#c8d3e0"/>
+  <text x="52" y="946" font-size="16" font-weight="700" fill="#1f2d3d">关键链路</text>
+
+  <text x="52" y="978" font-size="13.5" font-weight="700" fill="#2b7de9">① 平台 → GitLab API（http://[::1]:8080）</text>
+  <text x="52" y="1000" font-size="12.5" fill="#4a5568">两仓同名建分支 / 各自 tip / MR 合并 / 触发与取消 pipeline</text>
+
+  <text x="600" y="978" font-size="13.5" font-weight="700" fill="#b7791f">② GitLab Runner（tag=local）</text>
+  <text x="600" y="1000" font-size="12.5" fill="#4a5568">按仓库 checkout SHA → 构建自身镜像 → save/import → apply</text>
+
+  <text x="1148" y="978" font-size="13.5" font-weight="700" fill="#237a45">③ 平台轮询 pipeline + jobs（每 2s）</text>
+  <text x="1148" y="1000" font-size="12.5" fill="#4a5568">回写五步：拉取代码 / 编译 / 镜像构建 / 部署 k3s / 健康检查</text>
+
+  <text x="52" y="1040" font-size="13.5" font-weight="700" fill="#6a3ee0">④ 平台 fabric8 → k3s API（127.0.0.1:6443）</text>
+  <text x="52" y="1062" font-size="12.5" fill="#4a5568">Pod / 日志 / YAML / Events / 扩缩容 / 重启</text>
+
+  <text x="600" y="1040" font-size="13.5" font-weight="700" fill="#237a45">⑤ 应用 Pod → MySQL（shared 同一实例）</text>
+  <text x="600" y="1062" font-size="12.5" fill="#4a5568">按库隔离：app_dev / app_test / app_uat / app_prod</text>
+
+  <text x="1148" y="1040" font-size="13.5" font-weight="700" fill="#2b7de9">⑥ 平台后端 → platform 库</text>
+  <text x="1148" y="1062" font-size="12.5" fill="#4a5568">localhost:3306 → socat（WSL systemd）→ NodePort 30306</text>
+
+  <text x="52" y="1102" font-size="13.5" font-weight="700" fill="#2b7de9">⑦ 浏览器 → 应用 web</text>
+  <text x="52" y="1124" font-size="12.5" fill="#4a5568">localhost:30081 → socat → app-web-dev NodePort 30081</text>
+
+  <text x="600" y="1102" font-size="13.5" font-weight="700" fill="#c05621">门禁与审批</text>
+  <text x="600" y="1121" font-size="12.5" fill="#4a5568">dev → test → uat → prod 逐级（prod 合 main）</text>
+  <text x="600" y="1139" font-size="12.5" fill="#4a5568">SHA 一致才放行；test 首部署需 CR（审批人≠提交人）</text>
+
+  <text x="1148" y="1102" font-size="13.5" font-weight="700" fill="#c05621">并发与状态</text>
+  <text x="1148" y="1124" font-size="12.5" fill="#4a5568">deploy_locks 行锁串行；冲突 → CONFLICT，已解决回 READY</text>
+
+  <line x1="52" y1="1144" x2="1668" y2="1144" stroke="#e5eaf2"/>
+  <text x="52" y="1172" font-size="12.5" fill="#7a8599">说明：实线为控制/数据链路，紫色虚线为平台直连 k3s API；GitLab 容器、Runner、k3s 都跑在同一台 WSL2 里，镜像在 Docker 与 containerd 之间靠 save/import 搬运。</text>
+  <text x="52" y="1194" font-size="12.5" fill="#7a8599">端口速查：5173 平台前端 · 8090 平台后端 · 8080 GitLab（IPv6） · 6443 k3s API · 30306 MySQL · 30081~30084 应用 dev/test/uat/prod</text>
+</svg>

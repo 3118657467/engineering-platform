@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>工程平台 · 原型</title>
+  <link rel="stylesheet" href="styles.css?v=20261113-29">
+</head>
+<body>
+
+<!-- 登录 -->
+<div id="loginScreen" class="login">
+  <div class="login-card">
+    <div class="login-brand">
+      <div class="brand-mark">EP</div>
+      <h1>工程平台</h1>
+      <p class="tagline">需求 → 分支 → 环境，一条流水线走完</p>
+      <ul class="brand-points">
+        <li><b>需求驱动</b> 每条需求自动拉出开发分支</li>
+        <li><b>顺序门禁</b> dev → test → uat → prod 逐级放行</li>
+        <li><b>双人卡点</b> test 首次部署必须 CR 通过</li>
+        <li><b>SHA 一致</b> 每一级部署的是同一份提交</li>
+      </ul>
+      <p class="version">原型 v0.1 · 仅演示交互</p>
+    </div>
+    <form class="login-form" onsubmit="event.preventDefault(); doLogin()">
+      <h2>登录</h2>
+      <p class="form-sub">使用平台账号登录</p>
+      <label>账号
+        <input value="devuser" autocomplete="username">
+      </label>
+      <label>密码
+        <input type="password" value="123456" autocomplete="current-password">
+      </label>
+      <button id="loginBtn" class="btn primary block" type="submit">登 录</button>
+      <p class="hint">原型演示：直接点登录即可</p>
+    </form>
+  </div>
+</div>
+
+<!-- 主界面 -->
+<div id="appShell" class="shell hidden">
+  <aside class="sidebar">
+    <div class="side-brand">
+      <span class="brand-mark small">EP</span>
+      <span class="side-name">工程平台</span>
+    </div>
+
+    <nav class="nav">
+      <button class="nav-item active" data-page="requirements" onclick="showPage('requirements')">
+        <span class="nav-dot"></span>需求管理
+      </button>
+      <button class="nav-item" data-page="api-deploy" onclick="showPage('api-deploy')">
+        <span class="nav-dot"></span>后端部署
+        <span class="nav-tag">api</span>
+      </button>
+      <button class="nav-item" data-page="web-deploy" onclick="showPage('web-deploy')">
+        <span class="nav-dot"></span>前端部署
+        <span class="nav-tag">web</span>
+      </button>
+      <button class="nav-item" data-page="approvals" onclick="showPage('approvals')">
+        <span class="nav-dot"></span>审批待办
+        <em id="approvalBadge" class="badge">1</em>
+      </button>
+    </nav>
+
+    <div class="side-foot">
+      <div class="rule-card">
+        <strong>部署门禁</strong>
+        <p>dev → test → uat → prod</p>
+        <p>逐级解锁，SHA 一致</p>
+        <p>test 首部署需 CR</p>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="crumbs" id="crumbs">需求管理</div>
+      <div class="top-actions">
+        <label class="picker">角色
+          <select id="roleSelect" onchange="setRole(this.value)">
+            <option value="dev">开发</option>
+            <option value="approver">CR 管理员</option>
+          </select>
+        </label>
+        <div class="user">
+          <span class="avatar" id="userAvatar">冯</span>
+          <span id="userName">开发者</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="content">
+      <section id="page-requirements" class="page"></section>
+      <section id="page-api-deploy" class="page hidden"></section>
+      <section id="page-web-deploy" class="page hidden"></section>
+      <section id="page-approvals" class="page hidden"></section>
+    </main>
+  </div>
+</div>
+
+<div id="modalRoot"></div>
+<div id="toast" class="toast hidden"></div>
+
+<script src="app.js?v=20261113-29"></script>
+</body>
+</html>

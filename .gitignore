@@ -1,0 +1,23 @@
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 已拆分归档的演示应用（独立 Git 仓库）
+app/
+
+# 构建产物与依赖
+platform/server/target/
+platform/web/node_modules/
+platform/web/dist/
+platform/web/.vite/
+
+# 日志与本地环境文件
+*.log
+.env
+build.env
+*.local
