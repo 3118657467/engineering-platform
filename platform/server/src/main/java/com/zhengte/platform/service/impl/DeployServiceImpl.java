@@ -133,7 +133,8 @@ public class DeployServiceImpl implements DeployService {
             }
 
             boolean visiblePending = gate.ok() || gate.needCr() || gate.pendingCr()
-                    || status == EnvStatus.WAIT_CR || status == EnvStatus.REJECTED;
+                    || status == EnvStatus.WAIT_CR || status == EnvStatus.REJECTED
+                    || status == EnvStatus.LOCKED;
             if (status.isPendingDeploy() && visiblePending) {
                 List<Views.Tag> tags = new ArrayList<>();
                 if (envType == Env.TEST) {
