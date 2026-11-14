@@ -377,7 +377,6 @@ const projectId = ref('');
 const env = ref('dev');
 const board = ref(emptyBoard());
 const loading = ref(false);
-const switching = ref(false);
 const selected = ref([]);
 const confirmOpen = ref(false);
 const confirmRows = ref([]);
@@ -396,11 +395,10 @@ const approvalStore = useApprovalStore();
 
 let pollTimer = null;
 let requestSeq = 0;
-let switchTimer = null;
 
 const title = computed(() => (props.service === 'api' ? '后端部署' : '前端部署'));
 const serviceLabel = computed(() => (props.service === 'api' ? '后端 api · app-api' : '前端 web · app-web'));
-const busy = computed(() => loading.value || switching.value);
+const busy = computed(() => loading.value);
 const envLocked = computed(() => Boolean(board.value.running));
 const activeIndex = computed(() => envs.findIndex((item) => item.key === env.value));
 const currentProject = computed(() => projects.value.find((item) => item.id === projectId.value) || null);
@@ -476,11 +474,6 @@ function selectEnv(key) {
   if (key === env.value) return;
   env.value = key;
   selected.value = [];
-  switching.value = true;
-  clearTimeout(switchTimer);
-  switchTimer = setTimeout(() => {
-    switching.value = false;
-  }, 420);
   loadBoard();
 }
 
@@ -490,11 +483,6 @@ function changeProject() {
     return;
   }
   selected.value = [];
-  switching.value = true;
-  clearTimeout(switchTimer);
-  switchTimer = setTimeout(() => {
-    switching.value = false;
-  }, 420);
   loadBoard();
 }
 
@@ -704,6 +692,5 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   clearTimeout(pollTimer);
-  clearTimeout(switchTimer);
 });
 </script>
